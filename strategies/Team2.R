@@ -1,16 +1,41 @@
-# Introduction: 
-# mix "MACD_BBand" : 50%, "RSI_High(orderPortfolio)" : 25%, "EMA_trend": 25%
+# Parameters:
+# "Team2" = list(
+#     "MACD_BBand" = list(nFast = 12, nSlow = 26, nSig = 9,
+#     nMA = 30, IndexOfStocks = c(4,9,10),
+#     lost_ratio = 0.15, 
+#     ratio = 0.28),
+#     "RSI_High" = list(rsi_period = 15,
+#     rsi_threshold = 60,
+#     IndexOfStocks = c(2,5),
+#     ema_long = 50, 
+#     ema_short = 20,
+#     ratio = 0.15),
+#     "RSI_EMA_trend" = list(trend_period = 30,
+#     trend_duration = 4,
+#     long_EMAPeriod = 10,
+#     short_EMAPeriod = 5,
+#     long_EMAExit = 40,
+#     short_EMAExit = 15,
+#     RSI_threshold = 50,
+#     RSI_period = 14,
+#     Port_lookback = 200,
+#     IndexOfStocks = c(4,2),
+#     ratio = 0.15) )
+
+### ---- Parameters END ----
+# Position Sizing: 
+# Mixed strategy "MACD_BBand" : 28%, "RSI_High(orderPortfolio)" : 15%, "EMA_trend": 15% 
 
 # highOrderPortfolios: risk parity portfolios, which are widely used by practitioners in the financial industry, with the package highOrderPortfolios
 # see vignette to get more information about
+# The github package <- HighOrderPortfolio 
 # devtools::install_github("dppalomar/highOrderPortfolios")
 library(highOrderPortfolios)
-
 
 # g_table <- data.frame(matrix(NA, ncol = 10 + 1))
 # colnames(g_table) <- c("Pos", paste0("Signal_", 1:10))
 
-###----- GLOBAL VARIABLE ---------------------------------------------
+###----- VARIABLE FOR ALL STRATEGY ----------
 # To hold last order of each strategy,
 # because it can not be infered from current order
 # (do not use currentPos in function 'getOrders') 
@@ -24,7 +49,7 @@ G_order <- list(MACD_BBand = Order_info,
                 RSI_High = Order_info,
                 RSI_Trend = Order_info)
 
-###----- Order from MACD_BBand ---------------------------------------
+###----- Order from MACD_BBand ---------------
 # This strategy uses only market orders
 # (-1 mean the period before last, 0 mean the last period)
 # parameters of MACD: nFast = 12, nSlow = 26, nSig = 9
@@ -46,7 +71,7 @@ G_order <- list(MACD_BBand = Order_info,
 # @price: price value, [1] is value before last, [2] is the last value
 # @maValue: move average price
 # return:  1 if exit, otherwise 0
-F_MACD_BBand_exit_order <- function(cur_signal, price, maValue){
+MACD_BBand_exit_order <- function(cur_signal, price, maValue){
   
   retValue <- 0
   if(cur_signal > 0 & price[1] > maValue & price[2] < maValue){ # exit long trade
@@ -166,7 +191,7 @@ F_MACD_BBand_order <- function(store, params, info){
         if(order_new != 0) new_signals[i] <- order_new - last_signals[i]
         
         # exit order signal
-        order_exit <- F_MACD_BBand_exit_order(last_signals[i], price, bb_ma)
+        order_exit <- MACD_BBand_exit_order(last_signals[i], price, bb_ma)
         if(order_exit) exit_signals[i] <- (-1) * last_signals[i]
       }
     }
@@ -201,7 +226,8 @@ F_MACD_BBand_order <- function(store, params, info){
   return(marketOrders)
 }
 
-### end of MACD_BBand ###
+### end of MACD_BBand ####
+# HANS
 
 
 
@@ -488,7 +514,8 @@ F_RSI_EMA_trend_order <- function(store, params, info){
 }
 
 
-###----- getOrder function start ---------------------------------------------
+###----- getOrder function start --------
+
 
 library(TTR) # load library
 
@@ -538,7 +565,7 @@ updateClStore <- function(clStore, newRowList, series, iter) {
   return(clStore)
 }
 initStore <- function(newRowList,series) {
-  count <- vector(mode="numeric",length=length(series)) # stores # of days in trade
+  count <- vector(mode="numeric",length=length(series)) 
   return(list(iter=0,cl=initClStore(newRowList,series),count=count))
 }
 updateStore <- function(store, newRowList, series) {
