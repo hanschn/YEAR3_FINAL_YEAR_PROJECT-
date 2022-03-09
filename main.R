@@ -1,3 +1,4 @@
+## HANS PROJECT
 source('framework/data.R'); 
 source('framework/backtester.R')
 source('framework/processResults.R'); 
