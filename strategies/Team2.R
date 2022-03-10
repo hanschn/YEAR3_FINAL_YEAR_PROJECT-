@@ -45,7 +45,7 @@ Order_info <- list(signals = rep(0, 10),
                    enterPrice = rep(0, 10)
 )
 
-G_order <- list(MACD_BBand = Order_info,
+all_order <- list(MACD_BBand = Order_info,
                 RSI_High = Order_info,
                 RSI_Trend = Order_info)
 
@@ -119,9 +119,9 @@ MACD_BBand_stop_loss <- function(store, params){
   
   for(i in 1:length(retValue)){
     
-    if(G_order$MACD_BBand$enterPrice[i] != 0){ # enterPrice must no be 0
+    if(all_order$MACD_BBand$enterPrice[i] != 0){ 
       # must consider buy or sell order
-      cur_rate <- (store[nrow(store), i]/G_order$MACD_BBand$enterPrice[i]) ^ (G_order$MACD_BBand$signals[i])
+      cur_rate <- (store[nrow(store), i]/all_order$MACD_BBand$enterPrice[i]) ^ (all_order$MACD_BBand$signals[i])
       # stop loss when below lost_ratio
       if(cur_rate < (1 - params$lost_ratio)){
         retValue[i] <- TRUE
@@ -150,10 +150,10 @@ MACD_BBand_order <- function(store, params, info){
   #       else if abs(market_signal) ==2, new current signal
   #       else if "Do nothing"
   
-  last_signals <- G_order$MACD_BBand$signals # get last signals
-  loss_signals <- allzero # get current stop loss signals(position)
-  new_signals <- allzero # get current new order signals(position)
-  exit_signals <- allzero # get current exit order signals(position)
+  last_signals <- all_order$MACD_BBand$signals 
+  loss_signals <- allzero 
+  new_signals <- allzero 
+  exit_signals <- allzero 
   
   
   numOfDays   <- nrow(store) # get days of history data
@@ -175,7 +175,8 @@ MACD_BBand_order <- function(store, params, info){
         if(loss_signals[i]) loss_signals[i] <- (-1) * last_signals[i]
         
         
-        price <- tail(store[,i], 2) # close price
+        # close price <- price 
+        price <- tail(store[,i], 2) 
         # macd, nFast = 12, nSlow = 26, nSig = 9
         macd <- tail(MACD(store[,i], params$nFast, params$nSlow, params$nSig)[, "macd"], 1)
         # bband, sdLow = 1.3, sdHigh = 2, nMA = 10
@@ -203,21 +204,21 @@ MACD_BBand_order <- function(store, params, info){
       if(abs(market_signals[i]) >=2){
         # abs(market_signal) can not exceed 2
         # if exceed 2, sell last_volume, and buy new one share
-        marketOrders[i] <- (-1) * G_order$MACD_BBand$signals[i] * G_order$MACD_BBand$volumes[i] + 
+        marketOrders[i] <- (-1) * all_order$MACD_BBand$signals[i] * all_order$MACD_BBand$volumes[i] + 
           sign(market_signals[i]) * floor(info$balance * params$ratio / 10 / store[nrow(store), i])
         
-        # update G_order info
-        G_order$MACD_BBand$signals[i] <- sign(market_signals[i])
-        G_order$MACD_BBand$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
-        G_order$MACD_BBand$enterprice[i] <- store[nrow(store), i]
+        # update all_order info
+        all_order$MACD_BBand$signals[i] <- sign(market_signals[i])
+        all_order$MACD_BBand$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
+        all_order$MACD_BBand$enterprice[i] <- store[nrow(store), i]
       }else if(abs(market_signals[i]) == 1){
         
         marketOrders[i] <- sign(market_signals[i]) * floor(info$balance * params$ratio / 10 / store[nrow(store), i])
         
-        # update G_order info
-        G_order$MACD_BBand$signals[i] <- sign(market_signals[i])
-        G_order$MACD_BBand$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
-        G_order$MACD_BBand$enterprice[i] <- store[nrow(store), i]
+        # update all_order info
+        all_order$MACD_BBand$signals[i] <- sign(market_signals[i])
+        all_order$MACD_BBand$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
+        all_order$MACD_BBand$enterprice[i] <- store[nrow(store), i]
       }
     }
   }
@@ -240,9 +241,9 @@ MACD_BBand_order <- function(store, params, info){
 # and will be flat otherwise
 
 ### function to exit current trade
-# @cur_pos: current position, >0 mean long, <0 mean short
-# @ema10: EMA(10) value
-# @ema25: EMA(25) value
+# -> cur_pos: current position, >0 mean long, <0 mean short
+# -> ema10: EMA(10) value 
+# -> ema25: EMA(25) value 
 # return: clear current trade if conditions match, otherwise 0
 RSI_High_exit_order <- function(cur_signal, ema10, ema25){
   
@@ -268,9 +269,8 @@ RSI_High_new_order <- function(rsix, threshold, ema10, ema25){
   return(ret_x) # 
 }
 
-# use "highOrderPortfolios::design_MVSKtilting_portfolio" function to calc portofolio
-# @store: close price of each series(matrix)
-# @order_new: order of step 1(vector)
+# -> store: close price of each series(matrix)
+# -> order_new: order of step 1(vector)
 # return: weights of each series
 HighOrderPort <- function(store, order_new, params){
   
@@ -305,7 +305,7 @@ RSI_High_order <- function(store, params, info){
   
   allzero  <- rep(0, ncol(store)) #initialise vectors
   marketOrders <- allzero
-  cur_signal <- G_order$RSI_High$signals # get current RSI_Trend order(position)
+  cur_signal <- all_order$RSI_High$signals # get current RSI_Trend order(position)
   
   order_exit <- allzero # 1: exit current position
   order_new <- allzero # 2: enter new position, and they should be rebalanced by current worth and series price
@@ -339,8 +339,8 @@ RSI_High_order <- function(store, params, info){
     mktorder_new <- allzero
     for(i in 1:length(order_new)){
       
-      if((order_new[i] == -1 * (G_order$RSI_High$signals[i])) & order_new[i] != 0){
-        order_exit[i] <- (-G_order$RSI_High$signals)
+      if((order_new[i] == -1 * (all_order$RSI_High$signals[i])) & order_new[i] != 0){
+        order_exit[i] <- (-all_order$RSI_High$signals)
         mktorder_new[i] <- order_new[i]
       }
       
@@ -348,12 +348,12 @@ RSI_High_order <- function(store, params, info){
       if(order_new[i] != 0){ 
         mktorder_new[i] <- order_new[i]
       }else{ 
-        mktorder_new[i] <- G_order$RSI_High$signals[i]
+        mktorder_new[i] <- all_order$RSI_High$signals[i]
       }
       
     }
     
-    if(sum(mktorder_new == G_order$RSI_High$signals) != length(mktorder_new) | (sum(abs(order_exit)) != 0)){
+    if(sum(mktorder_new == all_order$RSI_High$signals) != length(mktorder_new) | (sum(abs(order_exit)) != 0)){
       
       mktvolume_new <- allzero
       
@@ -366,15 +366,15 @@ RSI_High_order <- function(store, params, info){
       }
       
       # order of exit
-      mktvolume_exit <- order_exit * G_order$RSI_High$volumes
+      mktvolume_exit <- order_exit * all_order$RSI_High$volumes
       
       # market orders
       marketOrders <- mktvolume_new + mktvolume_exit
       
       # update order information 
-      G_order$RSI_High$signals <- mktorder_new
-      G_order$RSI_High$volumes <- mktvolume_new
-      G_order$RSI_High$enterPrice <- info$balance * params$ratio
+      all_order$RSI_High$signals <- mktorder_new
+      all_order$RSI_High$volumes <- mktvolume_new
+      all_order$RSI_High$enterPrice <- info$balance * params$ratio
     } 
   }
   return(marketOrders)
@@ -423,10 +423,10 @@ RSI_EMA_trend_new_order <- function(price, pars){
   #     if RSI[0] >= 50
   #     if EMA(3)[0] > EMA(5)[0] and  EMA(3)[-1] <= EMA(5)[-1](EMA3 is cross above EMA5)
   if(tail(price, 1) > tail(emaTrend, 1) & # price[0] > EMA(80)
-     Trend_long & # trend go Long(EMA80 is moving up for 4 period)
-     rsix >= pars$RSI_threshold & # RSI[0] >= 50
-     emaShort[1] <= emaLong[1] & # EMA(3)[-1] <= EMA(5)[-1]
-     emaShort[2] > emaLong[2]){ # EMA(3)[0] > EMA(5)[0]
+     Trend_long & 
+     rsix >= pars$RSI_threshold & 
+     emaShort[1] <= emaLong[1] & 
+     emaShort[2] > emaLong[2]){ 
     retValue <- 1
   }
   
@@ -436,9 +436,9 @@ RSI_EMA_trend_new_order <- function(price, pars){
   #     if EMA(3)[0] < EMA(5)[0] and  EMA(3)[-1] >= EMA[5][-1](EMA3 is cross below EMA5)
   if(tail(price, 1) < tail(emaTrend, 1) & # price[0] < EMA(80)
      Tredn_short & # trend go SHORT(EMA80 is moving down for 4 period)
-     rsix <= pars$RSI_threshold & # RSI[0] <= 50
-     emaShort[1] >= emaLong[1] & # EMA(3)[-1] >= EMA(5)[-1]
-     emaShort[2] < emaLong[2]){ # EMA(3)[0] < EMA(5)[0]
+     rsix <= pars$RSI_threshold & 
+     emaShort[1] >= emaLong[1] & 
+     emaShort[2] < emaLong[2]){ 
     retValue <- -1
   }
   return(retValue)
@@ -448,11 +448,12 @@ RSI_EMA_trend_order <- function(store, params, info){
   
   allzero  <- rep(0, ncol(store)) # used for initializing vectors
   marketOrders <- allzero
-  last_signals <- G_order$RSI_Trend$signals # get last signals
-  new_signals <- allzero # get current new order signals(position)
-  exit_signals <- allzero # get current exit order signals(position)
+  last_signals <- all_order$RSI_Trend$signals 
+  new_signals <- allzero 
+  exit_signals <- allzero 
   
-  numOfDays   <- nrow(store) # get days of history data
+  # get days of history data
+  numOfDays   <- nrow(store) 
   
   
   if(numOfDays >= (max(params$trend_period, params$long_EMAPeriod, params$long_EMAExit) + 10) ){ # data is enough for our strategy
@@ -482,21 +483,21 @@ RSI_EMA_trend_order <- function(store, params, info){
       if(abs(market_signals[i]) >=2){
         # abs(market_signal) can not exceed 2
         # if exceed 2, sell last_volume, and buy new one share
-        marketOrders[i] <- (-1) * G_order$RSI_Trend$signals[i] * G_order$RSI_Trend$volumes[i] + 
+        marketOrders[i] <- (-1) * all_order$RSI_Trend$signals[i] * all_order$RSI_Trend$volumes[i] + 
           sign(market_signals[i]) * floor(info$balance * params$ratio / 10 / store[nrow(store), i])
         
-        # update G_order info
-        G_order$RSI_Trend$signals[i] <- sign(market_signals[i])
-        G_order$RSI_Trend$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
-        G_order$RSI_Trend$enterprice[i] <- store[nrow(store), i]
+        # update all_order info
+        all_order$RSI_Trend$signals[i] <- sign(market_signals[i])
+        all_order$RSI_Trend$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
+        all_order$RSI_Trend$enterprice[i] <- store[nrow(store), i]
       }else if(abs(market_signals[i]) == 1){
         
         marketOrders[i] <- sign(market_signals[i]) * floor(info$balance * params$ratio / 10 / store[nrow(store), i])
         
-        # update G_order info
-        G_order$RSI_Trend$signals[i] <- sign(market_signals[i])
-        G_order$RSI_Trend$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
-        G_order$RSI_Trend$enterprice[i] <- store[nrow(store), i]
+        # update all_order info
+        all_order$RSI_Trend$signals[i] <- sign(market_signals[i])
+        all_order$RSI_Trend$volumes[i] <- floor(info$balance * params$ratio / 10 / store[nrow(store), i])
+        all_order$RSI_Trend$enterprice[i] <- store[nrow(store), i]
       }
     }
     
@@ -505,6 +506,7 @@ RSI_EMA_trend_order <- function(store, params, info){
   
   return(marketOrders)
 }
+
 
 
 #----- getOrder function start --------
