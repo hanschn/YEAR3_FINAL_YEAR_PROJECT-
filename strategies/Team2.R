@@ -1,16 +1,16 @@
 # -------- Parameters ----------------------
 
-# "Team2" = list(
+#  params <- list(
 #     "MACD_BBand" = list(nFast = 12, nSlow = 26, nSig = 9,
-#     nMA = 30, IndexOfStocks = c(4,9,10),
+#     nMA = 30, Series = c(4,9,10),
 #     lost_ratio = 0.15, 
-#     ratio = 0.28),
+#     ratio = 0.15),
 #     "RSI_High" = list(rsi_period = 15,
 #     rsi_threshold = 60,
-#     IndexOfStocks = c(2,5),
+#     Series = c(2,5),  
 #     ema_long = 50, 
 #     ema_short = 20,
-#     ratio = 0.15),
+#     ratio = 0.2),
 #     "RSI_EMA_trend" = list(trend_period = 30,
 #     trend_duration = 4,
 #     long_EMAPeriod = 10,
@@ -20,8 +20,8 @@
 #     RSI_threshold = 50,
 #     RSI_period = 14,
 #     Port_lookback = 200,
-#     IndexOfStocks = c(4,2),
-#     ratio = 0.15) )
+#     Series = c(4,2),
+#     ratio = 0.2) )
 
 # ----- Parameters END ----------------------
 
@@ -151,14 +151,14 @@ MACD_BBand_order <- function(store, params, info){
     
     loss_signals <- MACD_BBand_stop_loss(store, params)
     
-    loss_signals[base::setdiff(c(1:length(loss_signals)), params$IndexOfStocks)] <- 0
+    loss_signals[base::setdiff(c(1:length(loss_signals)), params$Series)] <- 0
     
     for(i in 1:length(allzero)){
         
       order_new <- 0
       order_exit <- 0
       
-      if(i %in% params$IndexOfStocks){
+      if(i %in% params$Series){
         
         # stop loss signal
         if(loss_signals[i]) loss_signals[i] <- (-1) * last_signals[i]
@@ -169,7 +169,7 @@ MACD_BBand_order <- function(store, params, info){
         # macd, nFast = 12, nSlow = 26, nSig = 9
         macd <- tail(MACD(store[,i], params$nFast, params$nSlow, params$nSig)[, "macd"], 1)
         # bband, sdLow = 1.3, sdHigh = 2, nMA = 10
-        bb <- BBands(store[, i], n = params$nMA) # BBand of close price
+        bb <- BBands(store[, i], n = params$nMA)
         bb_ma <- tail(bb[,"mavg"], 1)
         bb_sd <- (tail(bb[,"up"], 1) - bb_ma) / 2
         
@@ -276,7 +276,7 @@ HighOrderPort <- function(store, order_new, params){
     d <- abs(w0_moments) 
     kappa <- 0.3 * sqrt(w0 %*% X_moments$Sgm %*% w0)
     
-    # portfolio optimization
+    # portfolio optimization <- by design_MVSKtilting_portfolio function 
     sol <- design_MVSKtilting_portfolio(d, X_moments, w_init = w0, w0 = w0, 
                                         w0_moments = w0_moments, kappa = kappa, 
                                         ftol = 1e-10)
@@ -307,7 +307,7 @@ RSI_High_order <- function(store, params, info){
     for(i in 1:ncol(store)){
 
       
-      if(i %in% params$IndexOfStocks){
+      if(i %in% params$Series){
         # RSI
         rsi_x <- tail(RSI(store[,i], n = params$rsi_period), 2)
 
@@ -401,30 +401,30 @@ RSI_EMA_trend_new_order <- function(price, pars){
   rsix <- tail(RSI(price, n = pars$RSI_period), 1) # rsi
   emaTrend <- tail(SMA(price, n = pars$trend_period), pars$trend_duration) # SMA of trend
   Trend_long <- sum(diff(emaTrend) > 0, na.rm = T) == (pars$trend_duration - 1) # trend go Long
-  Tredn_short <- sum(diff(emaTrend) < 0, na.rm = T) == -(pars$trend_duration - 1) # trend go SHORT
+  Trend_short <- sum(diff(emaTrend) < 0, na.rm = T) == -(pars$trend_duration - 1) # trend go SHORT
   emaShort <- tail(SMA(price, n = pars$short_EMAPeriod), 2)
   emaLong <- tail(SMA(price, n = pars$long_EMAPeriod), 2)
   
   retValue <- 0
   
-  # The strategy will go LONG if all following rules matched：
-  #     if price[0] > EMA(80), EMA(80)[-3] <= EMA(80)[-2] <= EMA(80)[-1] <= EMA(80)[0](current price is above EMA80, and EMA80 is moving up for 4 period)
+  # The strategy will go LONG : 
+  #     if price[0] > EMA(80), EMA(80)[-3] <= EMA(80)[-2] <= EMA(80)[-1] <= EMA(80)[0]
   #     if RSI[0] >= 50
-  #     if EMA(3)[0] > EMA(5)[0] and  EMA(3)[-1] <= EMA(5)[-1](EMA3 is cross above EMA5)
+  #     if EMA(3)[0] > EMA(5)[0] and  EMA(3)[-1] <= EMA(5)[-1]
   if(tail(price, 1) > tail(emaTrend, 1) & 
      Trend_long & 
      rsix >= pars$RSI_threshold & 
      emaShort[1] <= emaLong[1] & 
      emaShort[2] > emaLong[2]){ 
-    retValue <- 1
+    retValue <- 1 
   }
   
   # The strategy will go SHORT：
-  #     if price[0] < EMA(80), EMA(80)[-3] >= EMA(80)[-2] >= EMA(80)[-1] >= EMA(80)[0](current price is below EMA80, and EMA80 is moving down for 4 period)
+  #     if price[0] < EMA(80), EMA(80)[-3] >= EMA(80)[-2] >= EMA(80)[-1] >= EMA(80)[0] 
   #     if RSI[-1] <= 50
-  #     if EMA(3)[0] < EMA(5)[0] and  EMA(3)[-1] >= EMA[5][-1](EMA3 is cross below EMA5)
+  #     if EMA(3)[0] < EMA(5)[0] and  EMA(3)[-1] >= EMA[5][-1]
   if(tail(price, 1) < tail(emaTrend, 1) & 
-     Tredn_short & 
+     Trend_short & 
      rsix <= pars$RSI_threshold & 
      emaShort[1] >= emaLong[1] & 
      emaShort[2] < emaLong[2]){ 
@@ -451,7 +451,7 @@ RSI_EMA_trend_order <- function(store, params, info){
       order_new <- 0
       order_exit <- 0
       
-      if(i %in% params$IndexOfStocks){
+      if(i %in% params$Series){
         # new order signal
         order_new <- RSI_EMA_trend_new_order(store[, i], params)
         if(order_new != 0) new_signals[i] <- order_new - last_signals[i]
@@ -517,8 +517,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   # only get Close price 
   data_Close <- sapply(newRowList, function(x) x$Close ) 
 
-  
-  # store data
+  # put Close price into store 
   store <- rbind(store, data_Close) 
   
   # all of the orders from three strategies
@@ -537,6 +536,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 }
 
 # copy from bbands_holding_period.R
+
 initClStore  <- function(newRowList,series) {
   clStore <- matrix(0,nrow=maxRows,ncol=length(series))
   return(clStore)
