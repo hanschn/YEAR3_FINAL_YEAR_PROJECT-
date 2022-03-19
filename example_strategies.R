@@ -34,24 +34,24 @@ example_params <- list(
                                                        sdLow = 2, sdHigh = 4.2, nMA = 30,
                                                        Series = c(4,9,10),
                                                        lost_ratio = 0.15,
-                                                       ratio = 0.15),
+                                                       ratio = 0.13),
                                    "RSI_High" = list(rsi_period = 15,
                                                      rsi_threshold = 60,
                                                      Series = c(2,5),
                                                      ema_long = 50,
                                                      ema_short = 20,
-                                                     ratio = 0.2),
+                                                     ratio = 0.18),
                                    "RSI_EMA_trend" = list(trend_period = 30,
-                                                          trend_duration = 4,
+                                                          trend_duration = 4,#4
                                                           long_EMAPeriod = 10,
-                                                          short_EMAPeriod = 5,
+                                                          short_EMAPeriod = 5, 
                                                           long_EMAExit = 40,
-                                                          short_EMAExit = 15,
+                                                          short_EMAExit = 15,#15
                                                           RSI_threshold = 50,
                                                           RSI_period = 14,
                                                           Port_lookback = 200,
                                                           Series = c(2,4),
-                                                          ratio = 0.2) )
+                                                          ratio = 0.18) )
 
                     )
 

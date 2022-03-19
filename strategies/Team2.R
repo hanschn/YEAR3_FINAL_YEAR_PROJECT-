@@ -4,13 +4,13 @@
 #     "MACD_BBand" = list(nFast = 12, nSlow = 26, nSig = 9,
 #     nMA = 30, Series = c(4,9,10),
 #     lost_ratio = 0.15, 
-#     ratio = 0.15),
+#     ratio = 0.13),
 #     "RSI_High" = list(rsi_period = 15,
 #     rsi_threshold = 60,
 #     Series = c(2,5),  
 #     ema_long = 50, 
 #     ema_short = 20,
-#     ratio = 0.2),
+#     ratio = 0.18),
 #     "RSI_EMA_trend" = list(trend_period = 30,
 #     trend_duration = 4,
 #     long_EMAPeriod = 10,
@@ -21,21 +21,19 @@
 #     RSI_period = 14,
 #     Port_lookback = 200,
 #     Series = c(4,2),
-#     ratio = 0.2) )
+#     ratio = 0.18) )
 
 # ----- Parameters END ----------------------
 
 
 # Position Sizing:
-# Mixed strategy "MACD_BBand" : 28%, "RSI_High(orderPortfolio)" : 15%, "EMA_trend": 15%  <- optimised 
+# Mixed strategy "MACD_BBand" : 13%, "RSI_High(HighorderPortfolio)" : 18%, "EMA_trend": 18%  <- optimised 
 
 # ---- HighOrderPortfolio package from Github ----
 # The github package <- HighOrderPortfolio 
 # devtools::install_github("dppalomar/highOrderPortfolios")
 library(highOrderPortfolios)
 
-# table <- data.frame(matrix(NA, ncol = 10 + 1))
-# colnames(table) <- c("Pos", paste0("Signal_", 1:10))
 
 
 #  ----- VARIABLE FOR ALL STRATEGY ----------
@@ -49,24 +47,12 @@ all_order <- list(MACD_BBand = Order_info,
                 RSI_High = Order_info,
                 RSI_Trend = Order_info)
 
-# ------ Order from MACD_BBand -----------
-# This strategy uses only market orders
+# ------ Order from MACD_BBand -----------  
 # parameters of MACD: nFast = 12, nSlow = 26, nSig = 9
-# parameters of bband: sdLow = 2, sdHigh = 4.2, nMA = 30 <- optimised 
-# The strategy will go under macd >0：
-#     if macd > 0 and price > ma30 + 4.2SD, go short
-#     if price(-1) > ma30 and price(0) < ma30, exit 
-#     if macd > 0 and price < ma30 - 2SD, go long
-#     if price(-1) < ma30 and price(0) > ma30, exit
-# The strategy will go under macd <0：
-#     if macd < 0 and price > ma30 + 2SD, go short
-#     if price(-1) > ma30 and price(0) < ma30, exit
-#     if macd < 0 and price < ma30 - 4.2SD, go long
-#     if price(-1) < ma30 and price(0) > ma30, exit
-# and will be flat otherwise 
+# parameters of bband: sdLow = 2, sdHigh = 4.2, nMA = 30 <- optimised
 
-# new order function
 # optimised parameters <- 4.2 sdvalue for the upper bound 2 sdValue for the lower bound
+
 MACD_BBand_new_order <- function(price, macdValue, maValue, sdValue){
   
   retValue <- 0
@@ -88,22 +74,21 @@ MACD_BBand_new_order <- function(price, macdValue, maValue, sdValue){
   return(retValue)
 }
 
-### function to exit current trade
 MACD_BBand_exit_order <- function(cur_signal, price, maValue){
   
   retValue <- 0
-  if(cur_signal > 0 & price[1] > maValue & price[2] < maValue){ # exit long trade
+    # exit long trade
+  if(cur_signal > 0 & price[1] > maValue & price[2] < maValue){ 
     retValue <- 1
-  }else if(cur_signal < 0 & price[1] < maValue & price[2] > maValue){ # exit short trade
+    # exit short trade
+  }else if(cur_signal < 0 & price[1] < maValue & price[2] > maValue){ 
     retValue <- 1
   }
   
   return(retValue)
 }
 
-
-# function for stop loss
-# parameters of "MACD_BBand", here we use lost_ratio(0.15) <- optimised 
+# parameters of "MACD_BBand", here we set parameters as lost_ratio(0.15) <- optimised 
 MACD_BBand_stop_loss <- function(store, params){
   
   retValue <- rep(FALSE, ncol(store))
@@ -120,24 +105,11 @@ MACD_BBand_stop_loss <- function(store, params){
   return(retValue)
 }
 
-
+# MACD_BBand order function 
 MACD_BBand_order <- function(store, params, info){
   
   allzero  <- rep(0,ncol(store))
   marketOrders <- allzero
-  
-  
-  # 1. get current stop_loss/new/exit signals
-  #       if loss_signal == TRUE, loss_signal =  - last_signal[i]
-  #       if new_signal !=0, new_signal = new_signal - last_signal[i]
-  #       if exit_signal == TRUE, exit_signal = -last_signal[i]
-  # 2. sum them up:
-  #       market_signal = loss_signal + new_signal + exit_signal
-  # 3. convert signals to market_orders
-  # abs(market_signal) must not exceed 2
-  #       if abs(market_signal) >=2, exit last_volume and new current signal
-  #       else if abs(market_signal) ==2, new current signal
-  #       else if "Do nothing"
 
   last_signals <- all_order$MACD_BBand$signals 
   loss_signals <- allzero 
@@ -168,7 +140,7 @@ MACD_BBand_order <- function(store, params, info){
         price <- tail(store[,i], 2) 
         # macd, nFast = 12, nSlow = 26, nSig = 9
         macd <- tail(MACD(store[,i], params$nFast, params$nSlow, params$nSig)[, "macd"], 1)
-        # bband, sdLow = 1.3, sdHigh = 2, nMA = 10
+        # bband, sdLow = 2, sdHigh = 4.2, nMA = 30
         bb <- BBands(store[, i], n = params$nMA)
         bb_ma <- tail(bb[,"mavg"], 1)
         bb_sd <- (tail(bb[,"up"], 1) - bb_ma) / 2
@@ -183,15 +155,15 @@ MACD_BBand_order <- function(store, params, info){
       }
     }
     
-    # 2. sum them up:
+    #  sum :
     market_signals <- loss_signals + new_signals + exit_signals
     
-    # 3. convert signals to market_orders
+    #  convert signals to market_orders
     for(i in 1:length(market_signals)){
       
       if(abs(market_signals[i]) >=2){
         # abs(market_signal) can not exceed 2
-        # if exceed 2, sell last_volume, and buy new one share
+        # if exceed 2, sell last_volume, and add position 
         marketOrders[i] <- (-1) * all_order$MACD_BBand$signals[i] * all_order$MACD_BBand$volumes[i] + 
           sign(market_signals[i]) * floor(info$balance * params$ratio / 10 / store[nrow(store), i])
         
@@ -215,70 +187,66 @@ MACD_BBand_order <- function(store, params, info){
 
 # -----------   end of MACD_BBand  ---------------------------
 
+#   HighOrderPortfolio : 
+
+# -------- References ----------:
+
+# https://github.com/dppalomar/highOrderPortfolios <- the highOrderPortfolio github website 
+#[1] H. Markowitz, "Portfolio selection," J. Financ., vol. 7, no. 1, pp. 77-91, 1952.
+#[2] R. Zhou and D. P. Palomar, "Solving high-order portfolios via successive convex approximation algorithms," https://arxiv.org/abs/2008.00863. 2020.
+#[3] K. Boudt, D. Cornilly, F. V. Holle, and J. Willems, "Algorithmic portfolio tilting to harvest higher moment gains," Heliyon, vol. 6, no. 3, pp. 1-8, 2020.
+
+# -------------------------------- #
 
 #----- Order from RSI_EMA_highOrderPortolio ------------------
-# HighOrderPortfolio Packafe and the Idea from Github 
-# The strategy will go short：
-#     if RSI(-1) >= 50, RSI(-1) > RSI(0), EMA(10) < EMA(25)
-#     if EMA(10) > EMA(25), exit
-# The strategy will go long：
-#     if RSI(1) <= 50, RSI(-1) < RSI(0), EMA(10) > EMA(25)
-#     if EMA(10) < EMA(25), exit
-# and will be flat otherwise
 
-### function to exit current trade
-# -> cur_pos: current position, >0 mean long, <0 mean short
-# -> ema10: EMA(10) value 
-# -> ema25: EMA(25) value 
-# return: clear current trade if conditions match, otherwise 0
+
+# function to exit current trade
 RSI_High_exit_order <- function(cur_signal, ema10, ema25){
   
   if(cur_signal > 0 & ema10 < ema25){ # exit long trade
     return(-cur_signal)
   }else if(cur_signal < 0 & ema10 > ema25){ # exit short trade
     return(-cur_signal)
-  }else{ # noop
+  }else{ 
     return(0)
   }
 }
 
 RSI_High_new_order <- function(rsix, threshold, ema10, ema25){
-  ret_x <- 0 # return value
-  # [1] mean before last, [2] mean last
-  if(rsix[1] >= threshold & rsix[1] > rsix[2] & ema10 < ema25){ # if RSI(-1) >= 50, RSI(-1) > RSI(0), EMA(10) < EMA(25), short
-    ret_x <- -1
-  }else if(rsix[1] <= (100-threshold) & rsix[1] < rsix[2] & ema10 > ema25){ # if RSI(-1) <= 50, RSI(-1) < RSI(0), EMA(10) > EMA(25), long
-    ret_x <- 1
+  ret_v <- 0 # return value
+
+  if(rsix[1] >= threshold & rsix[1] > rsix[2] & ema10 < ema25){ 
+    ret_v <- -1
+  }else if(rsix[1] <= (100-threshold) & rsix[1] < rsix[2] & ema10 > ema25){ 
+    ret_v <- 1
   }else{
-    ret_x <- 0
+    ret_v <- 0
   }
-  return(ret_x) # 
+  return(ret_v) # 
 }
 
-# -> store: close price of each series(matrix)
-# -> order_new: order of step 1(vector)
 # return: weights of each series
 HighOrderPort <- function(store, order_new, params){
   
-  ret_weight <- order_new # return weights of each series
+  ret_weight <- order_new 
   
-  sum_ord <- sum(abs(order_new))
-  if(sum_ord >= 2){
-    idx <- max(c(nrow(store) - 300, 1) ):nrow(store) # only use last 300
-    mat <- store[idx, abs(order_new) == 1] # get 'return' matrix
-    
-    # mat <- store[, abs(order_new) == 1] # get 'return' matrix
-    # estimate moments function 
+  # referance from : fast Design of HighOrderPortfolios - RuiZhou and Daniel P.Palomar
+  sum_order <- sum(abs(order_new))
+  if(sum_order >= 2){
+    idx <- max(c(nrow(store) - 300, 1) ):nrow(store) 
+    mat <- store[idx, abs(order_new) == 1]
+
     X_moments <- estimate_moments(mat, adjust_magnitude = TRUE)
     
-    w0 <- rep(1 / sum_ord, sum_ord)
-    w0_moments <- eval_portfolio_moments(w0, X_moments)
-    d <- abs(w0_moments) 
-    kappa <- 0.3 * sqrt(w0 %*% X_moments$Sgm %*% w0)
+    hop <- rep(1 / sum_order, sum_order)
+    hop_moments <- eval_portfolio_moments(hop, X_moments)
+    d <- abs(hop_moments) 
+    kappa <- 0.3 * sqrt(hop %*% X_moments$Sgm %*% hop)
     
-    # portfolio optimization <- by design_MVSKtilting_portfolio function 
-    sol <- design_MVSKtilting_portfolio(d, X_moments, w_init = w0, w0 = w0, 
-                                        w0_moments = w0_moments, kappa = kappa, 
+    # portfolio optimization
+    sol <- design_MVSKtilting_portfolio(d, X_moments, w_init = hop, hop = hop, 
+                                        hop_moments = hop_moments, kappa = kappa, 
                                         ftol = 1e-10)
     ret_weight[abs(order_new) == 1] <- sol$w
   }
@@ -302,8 +270,7 @@ RSI_High_order <- function(store, params, info){
   
     # check weather the data is enough for our strategy
   if(numOfDays >= (max(params$rsi_period, params$ema_long) + 10) ){ 
-    
-    # loop
+
     for(i in 1:ncol(store)){
 
       
@@ -369,20 +336,23 @@ RSI_High_order <- function(store, params, info){
   return(marketOrders)
 }
 
-
-
 #------ end of RSI_EMA_highOrderPortolio -------------
 
+# RSI_EMA_TREND
+# -------------- Referance ---------------------
+
+# Shankar, R.S. (2020). The Amazing Combination of ‘EMA & RSI’ While Trading The Forex Market.  
+# - Available at: https://www.forex.academy/the-amazing-combination-of-ema-rsi-while-trading-the-forex-market/
+
+# -----------------------------------------------
+
 #----- Order from RSI_EMA_trend ------------------------------
-# function to exit current trade
-# @cur_pos: current position, >0 mean long, <0 mean short
-# @price: price of one series
-# @pars: parameters holded to calculate long/short EMA
-# return: 1 if exit current position, otherwise 0
-RSI_EMA_trend_exit_order <- function(cur_signal, price, pars){
+
+
+RSI_EMA_trend_exit_order <- function(cur_signal, price, params){
   
-  emaShort <- tail(SMA(price, n = pars$short_EMAExit), 1)
-  emaLong <- tail(SMA(price, n = pars$long_EMAExit), 1)
+  emaShort <- tail(SMA(price, n = params$short_EMAExit), 1)
+  emaLong <- tail(SMA(price, n = params$long_EMAExit), 1)
   if(cur_signal > 0 & emaShort < emaLong){ 
     return(1)
   }else if(cur_signal < 0 & emaShort > emaLong){ 
@@ -392,18 +362,14 @@ RSI_EMA_trend_exit_order <- function(cur_signal, price, pars){
   }
 }
 
-# function to new trade
-# @price: price of one series
-# @pars: parameters holded to calculate Trading Rules
-# return: new trade if conditions match, 1 for Long, -1 for Short, otherwise 0
-RSI_EMA_trend_new_order <- function(price, pars){
+RSI_EMA_trend_new_order <- function(price, params){
   
-  rsix <- tail(RSI(price, n = pars$RSI_period), 1) # rsi
-  emaTrend <- tail(SMA(price, n = pars$trend_period), pars$trend_duration) # SMA of trend
-  Trend_long <- sum(diff(emaTrend) > 0, na.rm = T) == (pars$trend_duration - 1) # trend go Long
-  Trend_short <- sum(diff(emaTrend) < 0, na.rm = T) == -(pars$trend_duration - 1) # trend go SHORT
-  emaShort <- tail(SMA(price, n = pars$short_EMAPeriod), 2)
-  emaLong <- tail(SMA(price, n = pars$long_EMAPeriod), 2)
+  rsix <- tail(RSI(price, n = params$RSI_period), 1) # rsi
+  emaTrend <- tail(SMA(price, n = params$trend_period), params$trend_duration) # SMA of trend
+  Trend_long <- sum(diff(emaTrend) > 0, na.rm = T) == (params$trend_duration - 1) # trend go Long
+  Trend_short <- sum(diff(emaTrend) < 0, na.rm = T) == -(params$trend_duration - 1) # trend go SHORT
+  emaShort <- tail(SMA(price, n = params$short_EMAPeriod), 2)
+  emaLong <- tail(SMA(price, n = params$long_EMAPeriod), 2)
   
   retValue <- 0
   
@@ -413,7 +379,7 @@ RSI_EMA_trend_new_order <- function(price, pars){
   #     if EMA(3)[0] > EMA(5)[0] and  EMA(3)[-1] <= EMA(5)[-1]
   if(tail(price, 1) > tail(emaTrend, 1) & 
      Trend_long & 
-     rsix >= pars$RSI_threshold & 
+     rsix >= params$RSI_threshold & 
      emaShort[1] <= emaLong[1] & 
      emaShort[2] > emaLong[2]){ 
     retValue <- 1 
@@ -425,7 +391,7 @@ RSI_EMA_trend_new_order <- function(price, pars){
   #     if EMA(3)[0] < EMA(5)[0] and  EMA(3)[-1] >= EMA[5][-1]
   if(tail(price, 1) < tail(emaTrend, 1) & 
      Trend_short & 
-     rsix <= pars$RSI_threshold & 
+     rsix <= params$RSI_threshold & 
      emaShort[1] >= emaLong[1] & 
      emaShort[2] < emaLong[2]){ 
     retValue <- -1
@@ -488,16 +454,14 @@ RSI_EMA_trend_order <- function(store, params, info){
         all_order$RSI_Trend$enterprice[i] <- store[nrow(store), i]
       }
     }
-    
-    
+     
   }
-  
   return(marketOrders)
 }
 
 
 
-#----- getOrder function start --------
+#----- getOrder function  --------
 
 library(TTR)
 
@@ -535,7 +499,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
               limitPrices2=allzero))
 }
 
-# copy from bbands_holding_period.R
+# from bbands_holding_period.R
 
 initClStore  <- function(newRowList,series) {
   clStore <- matrix(0,nrow=maxRows,ncol=length(series))
