@@ -6,7 +6,7 @@ source('example_strategies.R');
 
 
 # load data
-dataList <- getData(directory="PART1")
+dataList <- getData(directory="PART2")
 # choose strategy from example_strategies
 strategy <- "Team2"
           

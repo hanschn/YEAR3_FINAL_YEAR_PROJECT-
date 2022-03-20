@@ -25,7 +25,6 @@
 
 # ----- Parameters END ----------------------
 
-
 # Position Sizing:
 # Mixed strategy "MACD_BBand" : 13%, "RSI_High(HighorderPortfolio)" : 18%, "EMA_trend": 18%  <- optimised 
 
@@ -50,6 +49,11 @@ all_order <- list(MACD_BBand = Order_info,
 # ------ Order from MACD_BBand -----------  
 # parameters of MACD: nFast = 12, nSlow = 26, nSig = 9
 # parameters of bband: sdLow = 2, sdHigh = 4.2, nMA = 30 <- optimised
+
+# --------- Referance ---------------
+#               No Referance 
+#  """Original Idea and strategy made my Team2"""
+#--------------------------------------------
 
 # optimised parameters <- 4.2 sdvalue for the upper bound 2 sdValue for the lower bound
 
@@ -191,11 +195,11 @@ MACD_BBand_order <- function(store, params, info){
 
 # -------- References ----------:
 
-# https://github.com/dppalomar/highOrderPortfolios <- the highOrderPortfolio github website 
+# https://github.com/dppalomar/highOrderPortfolios <- the highOrderPortfolio github website from Daniel P.Palomar
 #[1] H. Markowitz, "Portfolio selection," J. Financ., vol. 7, no. 1, pp. 77-91, 1952.
 #[2] R. Zhou and D. P. Palomar, "Solving high-order portfolios via successive convex approximation algorithms," https://arxiv.org/abs/2008.00863. 2020.
 #[3] K. Boudt, D. Cornilly, F. V. Holle, and J. Willems, "Algorithmic portfolio tilting to harvest higher moment gains," Heliyon, vol. 6, no. 3, pp. 1-8, 2020.
-
+#[4] R. Zhou and D. P. Palomar HongKong Universtiy of Science and Technology , "HighOrderPortfolio", 2020.08
 # -------------------------------- #
 
 #----- Order from RSI_EMA_highOrderPortolio ------------------
@@ -341,8 +345,8 @@ RSI_High_order <- function(store, params, info){
 # RSI_EMA_TREND
 # -------------- Referance ---------------------
 
-# Shankar, R.S. (2020). The Amazing Combination of ‘EMA & RSI’ While Trading The Forex Market.  
-# - Available at: https://www.forex.academy/the-amazing-combination-of-ema-rsi-while-trading-the-forex-market/
+# [1] Shankar, R.S. (2020). The Amazing Combination of ‘EMA & RSI’ While Trading The Forex Market.  
+#  Available at: https://www.forex.academy/the-amazing-combination-of-ema-rsi-while-trading-the-forex-market/
 
 # -----------------------------------------------
 
